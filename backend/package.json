@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx watch -r dotenv/config src/index.ts"
+    "dev": "tsx watch -r dotenv/config src/index.ts",
+    "seed": "tsx -r dotenv/config src/seeders/role.seeder.ts"
   },
   "keywords": [],
   "author": "",
