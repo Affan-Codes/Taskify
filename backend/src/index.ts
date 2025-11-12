@@ -8,6 +8,8 @@ import connectDatabase from "./config/database.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import passport from "passport";
 import authRoutes from "./routes/auth.route";
+import userRoutes from "./routes/user.route";
+import { isAuthenticated } from "./middlewares/isAuthenticated.middleware";
 
 const app = express();
 
@@ -45,6 +47,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(`${BASE_PATH}/auth`, authRoutes);
+app.use(`${BASE_PATH}/user`, isAuthenticated, userRoutes);
 
 app.use(errorHandler);
 

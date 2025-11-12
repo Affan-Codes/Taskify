@@ -108,6 +108,7 @@ export const registerUserService = async (body: {
       name,
       password,
     });
+    await user.save({ session });
 
     const account = new AccountModel({
       userId: user._id,
