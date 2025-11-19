@@ -11,6 +11,7 @@ import {
 } from "../utils/appError";
 import { MemberModel } from "../models/member.model";
 import { ProviderEnum } from "../enums/accountProvider.enum";
+import { hashValue } from "../utils/bcrypt";
 
 export const loginOrCreateAccountService = async (data: {
   provider: string;
@@ -93,6 +94,9 @@ export const registerUserService = async (body: {
   password: string;
 }) => {
   const { email, name, password } = body;
+
+  const hashedPassword = await hashValue(password);
+
   const session = await mongoose.startSession();
 
   try {
@@ -106,8 +110,12 @@ export const registerUserService = async (body: {
     const user = new UserModel({
       email,
       name,
-      password,
+      password: hashedPassword,
     });
+    user.isModified = function (path: string) {
+      if (path === "password") return false;
+      return mongoose.Document.prototype.isModified.call(this, path);
+    };
     await user.save({ session });
 
     const account = new AccountModel({

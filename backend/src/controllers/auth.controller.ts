@@ -5,20 +5,63 @@ import { registerSchema } from "../validation/auth.validation";
 import { HTTPSTATUS } from "../config/http.config";
 import { registerUserService } from "../services/auth.service";
 import passport from "passport";
+import { generateOAuthState, isValidRedirectUrl } from "../utils/oauth";
+
+export const googleLoginInitiate = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const state = generateOAuthState();
+    req.session.oauthState = state;
+
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return next(err);
+      }
+
+      // Pass state to Google OAuth
+      passport.authenticate("google", {
+        scope: ["profile", "email"],
+        state: state,
+      })(req, res, next);
+    });
+  }
+);
 
 export const googleLoginCallback = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentWorkspace = req.user?.currentWorkspace;
-
-    if (!currentWorkspace) {
+    if (!req.user || !req.user._id) {
+      console.error("OAuth callback: No user in request");
       return res.redirect(
-        `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure`
+        `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure&error=authentication_failed`
       );
     }
 
-    return res.redirect(
-      `${config.FRONTEND_ORIGIN}/workspace/${currentWorkspace}`
-    );
+    const currentWorkspace = req.user?.currentWorkspace;
+
+    if (!currentWorkspace) {
+      console.error("OAuth callback: No workspace for user", req.user._id);
+      return res.redirect(
+        `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure&error=no_workspace`
+      );
+    }
+
+    const redirectUrl = `${config.FRONTEND_ORIGIN}/workspace/${currentWorkspace}`;
+
+    if (!isValidRedirectUrl(redirectUrl, [config.FRONTEND_ORIGIN])) {
+      console.error("OAuth callback: Invalid redirect URL", redirectUrl);
+      return res.redirect(
+        `${config.FRONTEND_GOOGLE_CALLBACK_URL}?status=failure&error=invalid_redirect`
+      );
+    }
+
+    res.set({
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+    });
+
+    return res.redirect(redirectUrl);
   }
 );
 
@@ -60,7 +103,12 @@ export const loginController = asyncHandler(
 
           return res.status(HTTPSTATUS.OK).json({
             message: "Logged in successfully",
-            user,
+            user: {
+              id: user._id,
+              email: user.email,
+              name: user.name,
+              currentWorkspace: user.currentWorkspace,
+            },
           });
         });
       }

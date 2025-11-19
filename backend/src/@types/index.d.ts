@@ -5,5 +5,17 @@ declare global {
     interface User extends UserDocument {
       _id?: any;
     }
+
+    interface Request {
+      session: Session & {
+        oauthState?: string;
+      };
+    }
+  }
+}
+
+declare module "express-session" {
+  interface SessionData {
+    oauthState?: string;
   }
 }

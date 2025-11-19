@@ -3,6 +3,7 @@ import passport from "passport";
 import { config } from "../config/app.config";
 import {
   googleLoginCallback,
+  googleLoginInitiate,
   loginController,
   logOutController,
   registerUserController,
@@ -18,15 +19,13 @@ authRoutes.post("/login", loginController);
 
 authRoutes.post("/logout", logOutController);
 
-authRoutes.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
+authRoutes.get("/google", googleLoginInitiate);
 
 authRoutes.get(
   "/google/callback",
   passport.authenticate("google", {
     failureRedirect: failedUrl,
+    failureMessage: true,
   }),
   googleLoginCallback
 );

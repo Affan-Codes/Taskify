@@ -54,8 +54,10 @@ const userSchema = new Schema<UserDocument>(
 );
 
 userSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    if (this.password) {
+  if (this.isModified("password") && this.password) {
+    const isBcryptHash = /^\$2[aby]\$\d{2}\$/.test(this.password);
+
+    if (!isBcryptHash) {
       this.password = await hashValue(this.password);
     }
   }

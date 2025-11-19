@@ -10,6 +10,7 @@ import {
   verifyUserService,
 } from "../services/auth.service";
 import { UserModel } from "../models/user.model";
+import { verifyOAuthState } from "../utils/oauth";
 
 passport.use(
   new GoogleStrategy(
@@ -22,6 +23,18 @@ passport.use(
     },
     async (req: Request, accessToken, refreshToken, profile, done) => {
       try {
+        const storedState = req.session.oauthState;
+        const receivedState = req.query.state as string;
+
+        if (!verifyOAuthState(storedState, receivedState)) {
+          return done(
+            new Error("Invalid OAuth state - possible CSRF attack"),
+            false
+          );
+        }
+
+        delete req.session.oauthState;
+
         const { email, sub: googleId, picture } = profile._json;
 
         console.log(profile, "profile");
@@ -31,6 +44,10 @@ passport.use(
           throw new NotFoundException("Google ID (sub) is missing");
         }
 
+        if (!profile._json.email_verified) {
+          return done(new Error("Google email not verified"), false);
+        }
+
         const { user } = await loginOrCreateAccountService({
           provider: ProviderEnum.GOOGLE,
           displayName: profile.displayName,
@@ -38,6 +55,9 @@ passport.use(
           ...(picture && { picture }),
           ...(email && { email }),
         });
+
+        user.lastLogin = new Date();
+        await user.save();
 
         done(null, user);
       } catch (error) {
@@ -57,6 +77,10 @@ passport.use(
     async (email, password, done) => {
       try {
         const user = await verifyUserService({ email, password });
+
+        user.lastLogin = new Date();
+        await UserModel.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+
         return done(null, user);
       } catch (error) {
         if (error instanceof Error) {
