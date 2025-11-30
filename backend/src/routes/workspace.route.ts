@@ -9,10 +9,15 @@ import {
   getWorkspaceMembersController,
   updateWorkspaceByIdController,
 } from "../controllers/workspace.controller";
+import { createResourceLimiter } from "../config/rateLimit.config";
 
 const workspaceRoutes = Router();
 
-workspaceRoutes.post("/create/new", createWorkspaceController);
+workspaceRoutes.post(
+  "/create/new",
+  createResourceLimiter,
+  createWorkspaceController
+);
 
 workspaceRoutes.get("/all", getAllWorkspacesUserIsMemberController);
 

@@ -7,10 +7,15 @@ import {
   getProjectByIdAndWorkspaceIdController,
   updateProjectController,
 } from "../controllers/project.controller";
+import { createResourceLimiter } from "../config/rateLimit.config";
 
 const projectRoutes = Router();
 
-projectRoutes.post("/workspace/:workspaceId/create", createProjectController);
+projectRoutes.post(
+  "/workspace/:workspaceId/create",
+  createResourceLimiter,
+  createProjectController
+);
 
 projectRoutes.put(
   "/:id/workspace/:workspaceId/update",

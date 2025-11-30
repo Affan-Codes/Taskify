@@ -6,11 +6,13 @@ import {
   getTaskByIdController,
   updateTaskController,
 } from "../controllers/task.controller";
+import { createResourceLimiter } from "../config/rateLimit.config";
 
 const taskRoutes = Router();
 
 taskRoutes.post(
   "/project/:projectId/workspace/:workspaceId/create",
+  createResourceLimiter,
   createTaskController
 );
 
